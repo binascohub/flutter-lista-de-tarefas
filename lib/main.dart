@@ -21,6 +21,8 @@ class _HomeState extends State<Home> {
   final _toDoController = TextEditingController();
 
   List _toDoList = [];
+  Map<String, dynamic> _lastRemoved = Map();
+  int _lastRemovedPos = 0;
 
   @override
   void initState() {
@@ -75,39 +77,64 @@ class _HomeState extends State<Home> {
           ),
           Expanded(
               child: ListView.builder(
-                padding: EdgeInsets.only(top: 10.0),
-                itemCount: _toDoList.length,
-                itemBuilder: buildItem,
-              ))
+            padding: EdgeInsets.only(top: 10.0),
+            itemCount: _toDoList.length,
+            itemBuilder: buildItem,
+          ))
         ],
       ),
     );
   }
 
-  Widget buildItem(context, index) {
+  Widget buildItem(BuildContext context, int index) {
     return Dismissible(
-        background: Container(
-          color: Colors.red,
-          child: Align(
-            alignment: Alignment(-0.9, 0.0),
-            child: Icon(Icons.delete, color: Colors.white,),
+      background: Container(
+        color: Colors.red,
+        child: Align(
+          alignment: Alignment(-0.9, 0.0),
+          child: Icon(
+            Icons.delete,
+            color: Colors.white,
           ),
         ),
-        direction: DismissDirection.startToEnd,
-        key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
-        child: CheckboxListTile(
-          onChanged: (c) {
-            setState(() {
-              _toDoList[index]["ok"] = c;
-              _saveData();
-            });
-          },
-          title: Text(_toDoList[index]["title"]),
-          value: _toDoList[index]["ok"],
-          secondary: CircleAvatar(
-            child: Icon(_toDoList[index]["ok"] ? Icons.check : Icons.error),
-          ),
-        )
+      ),
+      direction: DismissDirection.startToEnd,
+      key: Key(DateTime.now().millisecondsSinceEpoch.toString()),
+      child: CheckboxListTile(
+        onChanged: (c) {
+          setState(() {
+            _toDoList[index]["ok"] = c;
+            _saveData();
+          });
+        },
+        title: Text(_toDoList[index]["title"]),
+        value: _toDoList[index]["ok"],
+        secondary: CircleAvatar(
+          child: Icon(_toDoList[index]["ok"] ? Icons.check : Icons.error),
+        ),
+      ),
+      onDismissed: (direction) {
+        setState(() {
+          _lastRemoved = Map.from(_toDoList[index]);
+          _lastRemovedPos = index;
+          _toDoList.removeAt(index);
+          _saveData();
+          
+          final snack = SnackBar(
+              content: Text("Tarefa ${_lastRemoved["title"]} removida."),
+            action: SnackBarAction(
+              label: "Desfazer",
+              onPressed: (){
+                setState(() {
+                  _toDoList.insert(_lastRemovedPos, _lastRemoved);
+                  _saveData();
+                });
+              }),
+            duration: Duration(seconds: 2),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(snack);
+        });
+      },
     );
   }
 
